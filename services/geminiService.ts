@@ -1,12 +1,15 @@
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-    throw new Error("API_KEY environment variable is not set.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Helper function to initialize the AI client on demand.
+// This prevents the app from crashing on load if the API key isn't set.
+const getAiClient = () => {
+    const API_KEY = process.env.API_KEY;
+    if (!API_KEY) {
+        // This user-friendly error will be displayed in the UI.
+        throw new Error("API Key ไม่ได้ตั้งค่า โปรดตั้งค่า Environment Variable ชื่อ API_KEY ใน Vercel");
+    }
+    return new GoogleGenAI({ apiKey: API_KEY });
+};
 
 interface ImagePart {
   base64: string;
@@ -33,6 +36,7 @@ export async function generateMangaFromImage(
   prompt: string
 ): Promise<string> {
   try {
+    const ai = getAiClient(); // Initialize client just-in-time
     const imageParts = images.map(image => ({
       inlineData: {
         data: image.base64,
@@ -100,6 +104,7 @@ export async function generateMangaFromImage(
 
 export async function detectTextBubbles(image: ImagePart): Promise<Bubble[]> {
     try {
+        const ai = getAiClient(); // Initialize client just-in-time
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: {
@@ -142,12 +147,16 @@ export async function detectTextBubbles(image: ImagePart): Promise<Bubble[]> {
         return bubbles;
     } catch (error) {
         console.error("Error detecting text bubbles:", error);
+        if (error instanceof Error && error.message.includes("API Key")) {
+            throw error;
+        }
         throw new Error("ไม่สามารถตรวจจับช่องคำพูดในภาพได้");
     }
 }
 
 export async function editTextInImage(image: ImagePart, bubbles: EditedBubble[]): Promise<string> {
     try {
+        const ai = getAiClient(); // Initialize client just-in-time
         const editInstructions = bubbles.map((bubble, index) => 
             `Region ${index + 1}:
 - Bounding Box (percentages): x1=${bubble.box.x1.toFixed(4)}, y1=${bubble.box.y1.toFixed(4)}, x2=${bubble.box.x2.toFixed(4)}, y2=${bubble.box.y2.toFixed(4)}
