@@ -1,9 +1,11 @@
+
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 
 // Helper function to initialize the AI client on demand.
 // This prevents the app from crashing on load if the API key isn't set.
 const getAiClient = () => {
-    const API_KEY = process.env.API_KEY;
+    // Safely access process.env, as it's not defined in browser environments without a build step.
+    const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
     if (!API_KEY) {
         // This user-friendly error will be displayed in the UI.
         throw new Error("API Key ไม่ได้ตั้งค่า โปรดตั้งค่า Environment Variable ชื่อ API_KEY ใน Vercel");
